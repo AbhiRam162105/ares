@@ -1,0 +1,31 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ares
+      POSTGRES_PASSWORD: ares
+      POSTGRES_DB: ares
+    ports: ["5432:5432"]
+    volumes: ["ares_pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ares"]
+      interval: 5s
+      retries: 10
+  server:
+    build: ./server
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgres://ares:ares@db:5432/ares
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      LLM_PROVIDER: openai
+      EMBED_PROVIDER: openai
+      PORT: "8787"
+    ports: ["8787:8787"]
+    volumes:
+      - ./summaries:/app/summaries
+    command: sh -c "npm run migrate && npm run start"
+volumes: { ares_pgdata: {} }

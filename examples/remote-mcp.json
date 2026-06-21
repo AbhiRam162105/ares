@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "ares": {
+      "url": "https://ares.yourco.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ares_sk_..."
+      }
+    }
+  }
+}

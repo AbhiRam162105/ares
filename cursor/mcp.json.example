@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "ares": {
+      "url": "http://localhost:8787/mcp",
+      "headers": {
+        "Authorization": "Bearer PASTE_YOUR_ARES_API_KEY"
+      }
+    }
+  }
+}

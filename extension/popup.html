@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ARES Settings</title>
+    <link rel="stylesheet" href="src/styles.css" />
+  </head>
+  <body class="ares-popup">
+    <h1>ARES Settings</h1>
+    <form id="settings-form">
+      <label>
+        API URL
+        <input
+          type="url"
+          id="apiUrl"
+          name="apiUrl"
+          placeholder="https://ares.your-subdomain.workers.dev"
+          required
+        />
+      </label>
+      <label>
+        Bearer token
+        <input
+          type="password"
+          id="token"
+          name="token"
+          placeholder="Your ARES bearer token"
+          autocomplete="off"
+        />
+      </label>
+      <div class="ares-popup-actions">
+        <button type="button" id="test-btn">Test</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+    <div id="status" class="ares-popup-status" aria-live="polite"></div>
+    <div id="toast" class="ares-popup-toast"></div>
+    <script type="module" src="src/popup.ts"></script>
+  </body>
+</html>

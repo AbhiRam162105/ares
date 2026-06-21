@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "ares": {
+      "command": "npx",
+      "args": ["-y", "@ares/server", "ares-mcp"],
+      "env": {
+        "ARES_API_URL": "https://ares.yourco.com",
+        "ARES_API_KEY": "ares_sk_..."
+      }
+    }
+  }
+}

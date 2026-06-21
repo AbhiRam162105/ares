@@ -1,0 +1,505 @@
+:root {
+  --ares-red: #cf222e;
+  --ares-green: #1a7f37;
+  --ares-warn-bg: #fff8c5;
+  --ares-warn-border: #d4a72c;
+  --ares-border: #d0d7de;
+  --ares-text: #1f2328;
+  --ares-muted: #656d76;
+}
+
+/* ── Gutter mark (10.1) ── */
+.ares-gutter {
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--ares-red);
+  color: var(--ares-red);
+  font-size: 0;
+  line-height: 0;
+  cursor: pointer;
+  z-index: 50;
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 4px rgba(207, 34, 46, 0.35);
+  animation: ares-pulse 1s ease-out 3;
+}
+.ares-gutter:hover {
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 6px rgba(207, 34, 46, 0.5);
+}
+
+.ares-gutter-overridden {
+  background: var(--ares-green) !important;
+  color: var(--ares-green) !important;
+  animation: none;
+}
+
+@keyframes ares-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.6);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ── Hover card (10.2) ── */
+.ares-card {
+  position: fixed;
+  z-index: 10000;
+  width: 460px;
+  max-height: 540px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--ares-border);
+  border-left: 4px solid var(--ares-red);
+  border-radius: 6px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
+    Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  color: var(--ares-text);
+}
+
+.ares-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.ares-warn {
+  color: var(--ares-red);
+  font-weight: 600;
+}
+
+.ares-meta {
+  color: var(--ares-muted);
+  font-size: 12px;
+}
+
+.ares-decision {
+  margin: 0 0 8px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.ares-reasoning {
+  margin: 0 0 12px;
+  color: var(--ares-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ares-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.ares-actions a {
+  color: #0969da;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ares-actions a:hover {
+  text-decoration: underline;
+}
+
+/* ── Then / Now comparison ── */
+.ares-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px 0 12px;
+}
+
+.ares-compare-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ares-compare-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ares-muted);
+}
+
+.ares-compare-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.ares-tag-then {
+  background: #ddf4ff;
+  color: #0550ae;
+}
+
+.ares-tag-now {
+  background: #ffebe9;
+  color: #82071e;
+}
+
+.ares-compare-sub {
+  font-size: 11px;
+  color: var(--ares-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ares-diff {
+  margin: 0;
+  padding: 8px 10px;
+  background: #f6f8fa;
+  border: 1px solid var(--ares-border);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  max-height: 160px;
+  overflow-y: auto;
+  white-space: pre;
+}
+
+.ares-diff-line {
+  display: block;
+  padding: 0 4px;
+  border-radius: 2px;
+}
+
+.ares-diff-add {
+  background: #e6ffec;
+  color: #1a7f37;
+}
+
+.ares-diff-del {
+  background: #ffebe9;
+  color: #82071e;
+}
+
+.ares-diff-ctx {
+  color: var(--ares-text);
+}
+
+.ares-diff-empty {
+  font-style: italic;
+  color: var(--ares-muted);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 12px;
+}
+
+/* ── Match / judge metrics ── */
+.ares-metrics {
+  display: flex;
+  gap: 12px;
+  margin: 8px 0 12px;
+  font-size: 12px;
+  color: var(--ares-muted);
+}
+
+.ares-metric {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ares-metric-label {
+  font-weight: 600;
+  color: var(--ares-text);
+}
+
+/* ── Banner (10.3) ── */
+.ares-banner {
+  background: var(--ares-warn-bg);
+  border: 1px solid var(--ares-warn-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
+    Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  color: var(--ares-text);
+  cursor: pointer;
+}
+
+.ares-banner-text {
+  font-weight: 600;
+}
+
+.ares-banner-list {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  list-style: disc;
+}
+
+.ares-banner-list a {
+  color: #0969da;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.ares-banner-list a:hover {
+  text-decoration: underline;
+}
+
+/* ── Side panel (10.4) ── */
+.ares-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 9999;
+  width: 380px;
+  height: 100vh;
+  background: #fff;
+  border-left: 1px solid var(--ares-border);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.2s ease;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
+    Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  color: var(--ares-text);
+}
+
+.ares-panel-open {
+  transform: translateX(0);
+}
+
+.ares-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--ares-border);
+  flex-shrink: 0;
+}
+
+.ares-panel-title {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.ares-panel-close {
+  border: none;
+  background: none;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--ares-muted);
+  padding: 4px 8px;
+}
+
+.ares-panel-close:hover {
+  color: var(--ares-text);
+}
+
+.ares-panel-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ares-msg {
+  padding: 10px 12px;
+  border-radius: 8px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.ares-msg-user {
+  align-self: flex-end;
+  background: #ddf4ff;
+  max-width: 85%;
+}
+
+.ares-msg-assistant {
+  align-self: flex-start;
+  background: #f6f8fa;
+  border: 1px solid var(--ares-border);
+  max-width: 95%;
+}
+
+.ares-panel-input {
+  flex-shrink: 0;
+  height: 80px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--ares-border);
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.ares-panel-input textarea {
+  flex: 1;
+  resize: none;
+  border: 1px solid var(--ares-border);
+  border-radius: 6px;
+  padding: 8px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.ares-panel-send {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: var(--ares-green);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ares-panel-send:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ares-panel-send:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+/* ── Citation pills (10.4) ── */
+.ares-citation {
+  display: inline-block;
+  padding: 1px 6px;
+  margin: 0 2px;
+  border-radius: 999px;
+  background: #ddf4ff;
+  color: #0969da;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ares-citation-expanded {
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+
+/* ── PR header button ── */
+.ares-header-btn {
+  margin-left: 8px;
+  padding: 4px 12px;
+  border: 1px solid var(--ares-border);
+  border-radius: 6px;
+  background: #f6f8fa;
+  color: var(--ares-text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
+    Helvetica, Arial, sans-serif;
+}
+
+.ares-header-btn:hover {
+  background: #eef1f4;
+  border-color: #afb8c1;
+}
+
+/* ── Popup ── */
+body.ares-popup {
+  width: 320px;
+  margin: 0;
+  padding: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
+    Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  color: var(--ares-text);
+}
+
+.ares-popup h1 {
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+
+.ares-popup label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ares-popup input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 6px 8px;
+  border: 1px solid var(--ares-border);
+  border-radius: 6px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.ares-popup-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.ares-popup-actions button {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--ares-border);
+  border-radius: 6px;
+  background: #f6f8fa;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ares-popup-actions button.primary {
+  background: var(--ares-green);
+  border-color: var(--ares-green);
+  color: #fff;
+}
+
+.ares-popup-status {
+  margin-top: 12px;
+  font-size: 13px;
+  min-height: 20px;
+}
+
+.ares-popup-status.ok {
+  color: var(--ares-green);
+}
+
+.ares-popup-status.err {
+  color: var(--ares-red);
+}
+
+.ares-popup-toast {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ares-muted);
+}

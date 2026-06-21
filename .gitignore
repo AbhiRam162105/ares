@@ -1,0 +1,22 @@
+# dependencies & build output
+node_modules/
+dist/
+
+# secrets & local env (NEVER commit)
+.env
+.env.local
+*.local
+
+# machine-specific compose overrides
+docker-compose.override.yml
+
+# generated repo summaries (mined data)
+summaries/
+
+# logs & misc
+*.log
+.DS_Store
+
+# setup artifacts
+generated/
+.ares-key

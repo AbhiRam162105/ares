@@ -1,0 +1,31 @@
+---
+description: Consult ARES (codebase conventions) before and after writing code
+alwaysApply: true
+---
+
+# ARES — codebase conventions
+
+You have the ARES MCP tools, which hold this team's learned written and unwritten
+rules. Treat them as **binding context**.
+
+## FIRST, once per repo per session
+
+0. Before your first `recall_decisions` in a repo, call `ares.ensure_repo_memory`
+   with `repo` ("owner/repo", lowercase). It learns the repo from its docs and PR
+   reviews if new, and is an instant no-op if already learned. Do this once.
+
+## BEFORE writing or modifying any non-trivial code
+
+1. Call `ares.recall_decisions({ query, repo })` describing what you're about to
+   implement. Follow any applicable rule; if you must deviate, cite `[id]`.
+
+## AFTER writing code (before finishing your turn)
+
+2. Call `ares.check_conflict({ repo, intent, snippet })`. If it returns conflicts,
+   rewrite to comply or explain the intentional override and cite `[id]`.
+
+## When a durable rule is established
+
+Call `ares.record_decision({ repo, statement, rationale })`.
+
+Do not skip `recall_decisions` — the mistake should never get typed.

@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ARES — How PR Flagging Works</title>
+    <style>
+      :root {
+        --bg: #0d1117;
+        --panel: #161b22;
+        --panel-2: #1c2230;
+        --border: #30363d;
+        --text: #e6edf3;
+        --muted: #8b949e;
+        --accent: #58a6ff;
+        --red: #cf222e;
+        --red-soft: #ff6a73;
+        --green: #1a7f37;
+        --green-soft: #3fb950;
+        --warn-bg: #2d2a1a;
+        --warn-border: #d4a72c;
+        --add-bg: rgba(46, 160, 67, 0.15);
+        --add-gutter: rgba(46, 160, 67, 0.3);
+        --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      html { scroll-behavior: smooth; }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(1200px 600px at 80% -10%, rgba(88, 166, 255, 0.12), transparent),
+          radial-gradient(900px 500px at -10% 10%, rgba(207, 34, 46, 0.1), transparent),
+          var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .wrap { max-width: 1080px; margin: 0 auto; padding: 48px 24px 96px; }
+
+      header.hero { text-align: center; margin-bottom: 56px; }
+      .badge {
+        display: inline-block;
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 6px 14px;
+        background: var(--panel);
+        margin-bottom: 20px;
+      }
+      h1 {
+        font-size: 44px;
+        margin: 0 0 12px;
+        letter-spacing: -0.02em;
+        background: linear-gradient(120deg, #fff, #8b949e);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .tagline { color: var(--muted); font-size: 18px; margin: 0; }
+      .tagline em { color: var(--red-soft); font-style: normal; }
+
+      h2 {
+        font-size: 13px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 64px 0 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      /* ---------- Pipeline ---------- */
+      .pipeline {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 10px;
+      }
+      .stage {
+        position: relative;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px 14px;
+        cursor: pointer;
+        transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+        text-align: left;
+      }
+      .stage:hover { transform: translateY(-3px); border-color: var(--accent); }
+      .stage.active { border-color: var(--accent); background: var(--panel-2); box-shadow: 0 0 0 1px var(--accent); }
+      .stage .num {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--accent);
+        opacity: 0.8;
+      }
+      .stage .icon { font-size: 22px; margin: 6px 0; }
+      .stage .name { font-weight: 600; font-size: 13px; }
+      .stage .where { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 4px; }
+      .stage .arrow {
+        position: absolute; right: -8px; top: 50%; transform: translateY(-50%);
+        color: var(--border); font-size: 14px; z-index: 2;
+      }
+      .stage:last-child .arrow { display: none; }
+
+      .stage-detail {
+        margin-top: 18px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--accent);
+        border-radius: 10px;
+        padding: 20px 22px;
+        min-height: 120px;
+      }
+      .stage-detail h3 { margin: 0 0 6px; font-size: 17px; }
+      .stage-detail .file { font-family: var(--mono); font-size: 12px; color: var(--accent); margin-bottom: 12px; }
+      .stage-detail p { margin: 0 0 12px; color: var(--text); }
+      .stage-detail pre {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px 14px;
+        overflow-x: auto;
+        margin: 0;
+      }
+      .stage-detail code { font-family: var(--mono); font-size: 12.5px; color: #c9d1d9; }
+      .tok-key { color: #ff7b72; }
+      .tok-str { color: #a5d6ff; }
+      .tok-fn { color: #d2a8ff; }
+      .tok-com { color: #8b949e; }
+      .tok-num { color: #79c0ff; }
+
+      /* ---------- Demo PR ---------- */
+      .demo-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+
+      .gh {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .gh-top {
+        display: flex; align-items: center; gap: 10px;
+        padding: 12px 16px; border-bottom: 1px solid var(--border);
+        background: var(--panel-2);
+      }
+      .gh-top .repo { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+      .gh-top .repo b { color: var(--text); }
+      .ares-btn {
+        margin-left: auto;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-size: 12px; font-weight: 600;
+        padding: 6px 12px; border-radius: 6px; cursor: pointer;
+        display: inline-flex; align-items: center; gap: 6px;
+      }
+      .ares-btn:hover { border-color: var(--accent); }
+      .ares-btn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+
+      .ares-banner {
+        display: none;
+        align-items: center; gap: 10px;
+        background: var(--warn-bg);
+        border-bottom: 1px solid var(--warn-border);
+        color: #f0d98b;
+        padding: 10px 16px; font-size: 13px; font-weight: 600;
+      }
+      .ares-banner.show { display: flex; animation: fadein 0.4s ease; }
+      .ares-banner .pip { color: var(--warn-border); }
+
+      .file-head {
+        font-family: var(--mono); font-size: 12px; color: var(--muted);
+        padding: 10px 16px; border-bottom: 1px solid var(--border);
+        background: var(--panel-2);
+      }
+      .diff { font-family: var(--mono); font-size: 12.5px; }
+      .row { display: grid; grid-template-columns: 52px 1fr; align-items: stretch; }
+      .gutter {
+        position: relative;
+        text-align: right; padding: 2px 10px 2px 0;
+        color: var(--muted); user-select: none;
+        border-right: 1px solid var(--border);
+      }
+      .row.add .gutter { background: var(--add-gutter); }
+      .row.add .code { background: var(--add-bg); }
+      .code { padding: 2px 14px; white-space: pre; overflow-x: auto; }
+      .code .plus { color: var(--green-soft); }
+      .code .ctx { color: var(--muted); }
+
+      .ares-gutter {
+        display: none;
+        position: absolute; left: 4px; top: 50%; transform: translateY(-50%);
+        width: 9px; height: 9px; border-radius: 50%;
+        background: var(--red); cursor: pointer;
+      }
+      .row.flagged .ares-gutter { display: block; }
+      .row.flagged.pulse .ares-gutter { animation: pulse 1s ease 3; }
+      .row.overridden .ares-gutter { background: var(--green-soft); animation: none; }
+
+      @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(207,34,46,0.7); }
+        100% { box-shadow: 0 0 0 8px rgba(207,34,46,0); }
+      }
+      @keyframes fadein { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+      /* hover card */
+      .ares-card {
+        display: none;
+        position: relative;
+        margin: 0 16px 14px 60px;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--red);
+        border-radius: 8px;
+        padding: 14px 16px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        max-width: 560px;
+      }
+      .ares-card.show { display: block; animation: fadein 0.25s ease; }
+      .ares-card .ch { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+      .ares-card .warn { color: var(--red-soft); font-weight: 700; font-size: 13px; }
+      .ares-card .meta { color: var(--muted); font-size: 12px; }
+      .ares-card .decision { font-size: 14px; margin: 0 0 8px; color: var(--text); }
+      .ares-card .reasoning { font-size: 12.5px; color: var(--muted); font-style: italic; margin: 0 0 12px; }
+      .ares-card .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+      .ares-card .actions a, .ares-card .actions button {
+        font-size: 12px; font-weight: 600; cursor: pointer;
+        border-radius: 6px; padding: 5px 10px; text-decoration: none;
+        border: 1px solid var(--border); background: var(--bg); color: var(--text);
+      }
+      .ares-card .actions a { color: var(--accent); }
+      .ares-card .actions button:hover { border-color: var(--accent); }
+
+      .controls { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+      .ctl {
+        background: var(--accent); color: #06122a; border: none;
+        font-weight: 700; font-size: 13px; padding: 10px 18px;
+        border-radius: 8px; cursor: pointer;
+      }
+      .ctl.secondary { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+      .ctl:disabled { opacity: 0.5; cursor: not-allowed; }
+
+      .runlog {
+        font-family: var(--mono); font-size: 12px; color: var(--muted);
+        background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+        padding: 12px 14px; min-height: 92px; white-space: pre-wrap;
+      }
+      .runlog .ok { color: var(--green-soft); }
+      .runlog .hl { color: var(--accent); }
+      .runlog .bad { color: var(--red-soft); }
+
+      .legend { display: flex; gap: 20px; flex-wrap: wrap; color: var(--muted); font-size: 12px; margin-top: 14px; }
+      .legend span { display: inline-flex; align-items: center; gap: 6px; }
+      .legend .sw { width: 10px; height: 10px; border-radius: 50%; }
+
+      footer { margin-top: 72px; text-align: center; color: var(--muted); font-size: 13px; }
+      footer .sig { color: var(--red-soft); }
+
+      .cards3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+      .infocard { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+      .infocard h4 { margin: 0 0 6px; font-size: 14px; }
+      .infocard p { margin: 0; color: var(--muted); font-size: 13px; }
+      .infocard .tag { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+
+      @media (max-width: 860px) {
+        .pipeline { grid-template-columns: repeat(2, 1fr); }
+        .cards3 { grid-template-columns: 1fr; }
+        h1 { font-size: 34px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="hero">
+        <div class="badge">ARES · Adaptive Review &amp; Enforcement System</div>
+        <h1>How PR Flagging Works</h1>
+        <p class="tagline">Your codebase forgets. <em>ARES doesn't.</em> Watch a pull request get caught against a six-month-old decision.</p>
+      </header>
+
+      <!-- ============ PIPELINE ============ -->
+      <h2>The Review Pipeline · click any stage</h2>
+      <div class="pipeline" id="pipeline"></div>
+      <div class="stage-detail" id="stageDetail"></div>
+
+      <!-- ============ LIVE DEMO ============ -->
+      <h2>Live Walkthrough · a conflicting PR</h2>
+      <p style="color: var(--muted); margin-top: -8px;">
+        The PR below adds an in-memory auth cache "for performance." It looks innocent — but the team already
+        banned caching auth six months ago. Press <b>Run ARES review</b> to simulate the round trip.
+      </p>
+
+      <div class="controls">
+        <button class="ctl" id="runBtn">▶ Run ARES review</button>
+        <button class="ctl secondary" id="resetBtn">↺ Reset</button>
+      </div>
+
+      <div class="runlog" id="runlog">// idle — press “Run ARES review” to begin the pipeline.</div>
+
+      <div class="demo-grid" style="margin-top: 20px;">
+        <div class="gh">
+          <div class="gh-top">
+            <span class="repo"><b>demo-org/demo-repo</b> · PR #47 · <span style="color:var(--muted)">Add auth caching for perf</span></span>
+            <button class="ares-btn" id="askBtn"><span class="dot"></span> Ask ARES</button>
+          </div>
+
+          <div class="ares-banner" id="banner">
+            <span class="pip">⚠</span><span id="bannerText">1 ARES conflict found</span>
+          </div>
+
+          <div class="file-head">src/auth/session.ts</div>
+
+          <div class="diff" id="diff">
+            <!-- rows injected by JS -->
+          </div>
+
+          <!-- hover card mounts here -->
+          <div class="ares-card" id="card">
+            <div class="ch">
+              <span class="warn">⚠ Memory conflict</span>
+              <span class="meta">@sarah · 2025-09-14</span>
+            </div>
+            <p class="decision">
+              "Never cache auth responses. Password resets must invalidate the cache, and we got burned in
+              Sep 2025 when Redis-cached tokens kept revoked users logged in."
+            </p>
+            <p class="reasoning" id="cardReason">
+              An in-memory Map cache for auth results reintroduces the exact stale-credential failure the team
+              banned — different store (Map vs Redis), same semantic action.
+            </p>
+            <div class="actions">
+              <a href="#" onclick="return false;">View original →</a>
+              <button id="ovrIntentional">Override: intentional</button>
+              <button id="ovrAccidental">Override: accidental</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <span><span class="sw" style="background:var(--red)"></span> conflict (hover the dot)</span>
+          <span><span class="sw" style="background:var(--green-soft)"></span> overridden</span>
+          <span><span class="sw" style="background:var(--add-gutter)"></span> added line</span>
+        </div>
+      </div>
+
+      <!-- ============ WHY IT'S SEMANTIC ============ -->
+      <h2>Why It Catches What grep Can't</h2>
+      <div class="cards3">
+        <div class="infocard">
+          <div class="tag">@cf/baai/bge-base-en-v1.5</div>
+          <h4>Semantic, not literal</h4>
+          <p>The diff is embedded into a 768-dim vector. "Redis" and "new Map()" land close together because they <i>mean</i> the same thing — caching auth. Keyword search would miss it.</p>
+        </div>
+        <div class="infocard">
+          <div class="tag">Vectorize · cosine · filter by repo</div>
+          <h4>Scoped recall</h4>
+          <p>Only this repo's past decisions are searched. Top-3 nearest above the similarity threshold become conflict candidates, deduped by decision.</p>
+        </div>
+        <div class="infocard">
+          <div class="tag">gpt-4o-mini · AI Gateway</div>
+          <h4>An LLM second opinion</h4>
+          <p>Similarity alone over-flags. The judge LLM reads the decision + the new hunk and returns a strict verdict. Only <code>is_conflict</code> with confidence ≥ 0.6 survives.</p>
+        </div>
+      </div>
+
+      <footer>
+        Built from <b>ARES_PRD.md</b> · Cloudflare Worker (Hono · D1 · Vectorize · Workers AI · AI Gateway · Durable Objects) + Chrome MV3 extension.<br />
+        <span class="sig">Your codebase forgets. ARES doesn't.</span>
+      </footer>
+    </div>
+
+    <script>
+      // ---------- Pipeline data ----------
+      const STAGES = [
+        {
+          num: "01", icon: "🧭", name: "Detect & Parse", where: "content.ts",
+          title: "Parse the diff from GitHub's DOM",
+          file: "extension/src/content.ts · detectPage() + parseDiff()",
+          desc: "On a PR <code>/files</code> page, the content script walks GitHub's diff DOM, collects added lines per file, and groups them into hunks. No GitHub API token needed — the parsing happens client-side.",
+          code: `<span class="tok-com">// added lines become structured hunks</span>
+{ path: <span class="tok-str">"src/auth/session.ts"</span>,
+  hunks: [{ start_line: <span class="tok-num">23</span>,
+    added: [<span class="tok-str">"const authCache = new Map();"</span>, …] }] }`
+        },
+        {
+          num: "02", icon: "📡", name: "Request Review", where: "background.ts",
+          title: "Ship the parsed diff to the Worker",
+          file: "extension/src/background.ts → POST /v1/review",
+          desc: "The content script sends a <code>REVIEW</code> message to the service worker, which forwards it to the Cloudflare Worker with the shared Bearer token. CORS is locked to github.com + the extension origin.",
+          code: `<span class="tok-fn">api</span>.<span class="tok-fn">post</span>(<span class="tok-str">"/v1/review"</span>, {
+  repo_id: <span class="tok-str">"demo-org/demo-repo"</span>,
+  files: [ … parsed hunks … ]
+})`
+        },
+        {
+          num: "03", icon: "🧬", name: "Embed", where: "ai.ts",
+          title: "Embed every hunk in one batch",
+          file: "worker/src/ai.ts · embedBatch()",
+          desc: "All hunks are embedded in a single Workers AI call using BGE (768-dim) at the edge — one network round trip for the whole PR, not one per hunk.",
+          code: `<span class="tok-key">const</span> embeddings = <span class="tok-key">await</span> <span class="tok-fn">embedBatch</span>(chunks, env);
+<span class="tok-com">// → number[][]  (768-dim each, input-aligned)</span>`
+        },
+        {
+          num: "04", icon: "🔎", name: "Vector Search", where: "memory.ts",
+          title: "Find nearest past decisions",
+          file: "worker/src/routes.ts · VECTORIZE.query()",
+          desc: "Each hunk's vector queries Vectorize (cosine), filtered to this repo. Matches above the similarity threshold survive; results are deduped by <code>decision_id</code>, keeping the best-scoring hunk.",
+          code: `<span class="tok-key">await</span> env.VECTORIZE.<span class="tok-fn">query</span>(embedding, {
+  topK: <span class="tok-num">3</span>,
+  filter: { repo_id },
+  returnMetadata: <span class="tok-str">"all"</span>
+})`
+        },
+        {
+          num: "05", icon: "⚖️", name: "LLM Judge", where: "ai.ts",
+          title: "Confirm it's a real conflict",
+          file: "worker/src/ai.ts · judgeConflict()",
+          desc: "Nearness ≠ conflict. For each candidate, gpt-4o-mini (via AI Gateway) reads the past decision and the new hunk, returning strict JSON. Only <code>is_conflict && confidence ≥ 0.6</code> is kept.",
+          code: `<span class="tok-fn">generateObject</span>({
+  model: <span class="tok-fn">openai</span>(<span class="tok-str">"gpt-4o-mini"</span>),
+  schema: JudgeSchema,
+  system: JUDGE_SYSTEM,
+  prompt: <span class="tok-fn">buildJudgeUserMessage</span>(decision, hunk)
+})
+<span class="tok-com">// → { is_conflict, confidence, reasoning }</span>`
+        },
+        {
+          num: "06", icon: "🔴", name: "Render", where: "ui.ts",
+          title: "Inject dots, banner & hover cards",
+          file: "extension/src/ui.ts · renderConflicts()",
+          desc: "The response carries the full decision payload, so the UI needs zero extra calls. A red dot lands on the offending line, a banner counts conflicts, and hovering reveals the decision + override buttons.",
+          code: `<span class="tok-fn">renderBanner</span>(conflicts.length);
+<span class="tok-fn">renderConflicts</span>(conflicts, hunkLookup);
+<span class="tok-com">// hover → decision card · click → override</span>`
+        }
+      ];
+
+      const pipelineEl = document.getElementById("pipeline");
+      const detailEl = document.getElementById("stageDetail");
+
+      function renderDetail(i) {
+        const s = STAGES[i];
+        detailEl.innerHTML = `
+          <h3>${s.num} · ${s.title}</h3>
+          <div class="file">${s.file}</div>
+          <p>${s.desc}</p>
+          <pre><code>${s.code}</code></pre>`;
+        [...pipelineEl.children].forEach((c, idx) => c.classList.toggle("active", idx === i));
+      }
+
+      STAGES.forEach((s, i) => {
+        const el = document.createElement("button");
+        el.className = "stage";
+        el.innerHTML = `
+          <div class="num">${s.num}</div>
+          <div class="icon">${s.icon}</div>
+          <div class="name">${s.name}</div>
+          <div class="where">${s.where}</div>
+          <span class="arrow">→</span>`;
+        el.addEventListener("click", () => renderDetail(i));
+        el.addEventListener("mouseenter", () => renderDetail(i));
+        pipelineEl.appendChild(el);
+      });
+      renderDetail(0);
+
+      // ---------- Demo diff ----------
+      const DIFF_ROWS = [
+        { n: 20, type: "ctx", text: "import { fetchAuth } from './client';" },
+        { n: 21, type: "ctx", text: "" },
+        { n: 22, type: "add", text: "// Performance: avoid hitting auth server every request" },
+        { n: 23, type: "add", text: "const authCache = new Map<string, AuthResult>();", flagged: true },
+        { n: 24, type: "add", text: "" },
+        { n: 25, type: "add", text: "export function getOrFetchAuth(token: string) {" },
+        { n: 26, type: "add", text: "  if (authCache.has(token))" },
+        { n: 27, type: "add", text: "    return Promise.resolve(authCache.get(token)!);" },
+        { n: 28, type: "add", text: "  return fetchAuth(token).then(r => {" },
+        { n: 29, type: "add", text: "    authCache.set(token, r); return r;" },
+        { n: 30, type: "add", text: "  });" },
+        { n: 31, type: "add", text: "}" },
+        { n: 32, type: "ctx", text: "" }
+      ];
+
+      const diffEl = document.getElementById("diff");
+      DIFF_ROWS.forEach((r) => {
+        const row = document.createElement("div");
+        row.className = "row " + (r.type === "add" ? "add" : "ctx");
+        if (r.flagged) row.dataset.flagged = "1";
+        row.dataset.line = r.n;
+        const sign = r.type === "add" ? '<span class="plus">+</span> ' : '<span class="ctx">  </span>';
+        const codeText = r.text === "" ? "&nbsp;" : escapeHtml(r.text);
+        row.innerHTML = `
+          <div class="gutter"><span class="ares-gutter" title="ARES conflict"></span>${r.n}</div>
+          <div class="code">${sign}${codeText}</div>`;
+        diffEl.appendChild(row);
+      });
+
+      function escapeHtml(s) {
+        return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+
+      // ---------- Simulated run ----------
+      const runlog = document.getElementById("runlog");
+      const banner = document.getElementById("banner");
+      const card = document.getElementById("card");
+      const runBtn = document.getElementById("runBtn");
+      const resetBtn = document.getElementById("resetBtn");
+      const flaggedRow = document.querySelector('.row[data-flagged="1"]');
+
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+      function log(html) { runlog.innerHTML += "\n" + html; runlog.scrollTop = runlog.scrollHeight; }
+
+      async function runReview() {
+        reset();
+        runBtn.disabled = true;
+        runlog.innerHTML = '<span class="hl">POST /v1/review</span>  repo=demo-org/demo-repo';
+        await sleep(450);
+        log('parseDiff()      → 1 file · 1 hunk · 10 added lines');
+        await sleep(500);
+        log('embedBatch()     → 1 vector (768-dim) <span class="tok-com">via Workers AI BGE</span>');
+        await sleep(550);
+        log('VECTORIZE.query  → match decision_91a2 · <span class="hl">similarity 0.81</span> > 0.75 ✓');
+        await sleep(650);
+        log('judgeConflict()  → gpt-4o-mini <span class="tok-com">(AI Gateway)</span> …');
+        await sleep(800);
+        log('judge verdict    → { is_conflict: <span class="bad">true</span>, confidence: <span class="hl">0.92</span> } ✓');
+        await sleep(450);
+        log('<span class="ok">✓ 1 conflict returned — rendering UI</span>');
+
+        // render UI
+        flaggedRow.classList.add("flagged", "pulse");
+        banner.classList.add("show");
+        await sleep(900);
+        log('<span class="tok-com">// hover the red dot on line 23 →</span>');
+        runBtn.disabled = false;
+      }
+
+      function reset() {
+        runlog.innerHTML = '// idle — press “Run ARES review” to begin the pipeline.';
+        banner.classList.remove("show");
+        card.classList.remove("show");
+        flaggedRow.classList.remove("flagged", "pulse", "overridden");
+        runBtn.disabled = false;
+      }
+
+      runBtn.addEventListener("click", runReview);
+      resetBtn.addEventListener("click", reset);
+
+      // hover card behaviour
+      let hoverTimer;
+      flaggedRow.addEventListener("mouseenter", () => {
+        if (!flaggedRow.classList.contains("flagged")) return;
+        hoverTimer = setTimeout(() => card.classList.add("show"), 200);
+      });
+      diffEl.addEventListener("mouseleave", () => {
+        clearTimeout(hoverTimer);
+      });
+
+      // overrides
+      document.getElementById("ovrIntentional").addEventListener("click", () => {
+        flaggedRow.classList.add("overridden");
+        flaggedRow.classList.remove("pulse");
+        banner.querySelector("#bannerText").textContent = "0 conflicts · 1 overridden (intentional)";
+        log('<span class="ok">override: intentional — dot turned green (client-side)</span>');
+      });
+      document.getElementById("ovrAccidental").addEventListener("click", () => {
+        card.classList.remove("show");
+        log('<span class="tok-com">override: accidental — author acknowledged, dot stays red</span>');
+      });
+
+      // ask button (cosmetic for the doc)
+      document.getElementById("askBtn").addEventListener("click", () => {
+        log('<span class="hl">→ opens “Ask ARES” side panel</span> (POST /agents/chat/demo-org-demo-repo/chat)');
+      });
+    </script>
+  </body>
+</html>
