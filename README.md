@@ -3,6 +3,8 @@
 **The write-time decision-memory substrate for AI coding agents.**
 *Your codebase forgets. ARES doesn't.*
 
+![ARES — memory layer for AI coding agents](docs/assets/ares-poster.png)
+
 ARES is the neutral, write-time decision-memory layer that any coding agent or
 reviewer queries — over **MCP** or **REST** — *before* and *during* code
 generation. It accumulates a corpus of engineering decisions that compounds
