@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Athena</title>
+<meta name="description" content="Athena is the write-time decision memory for AI coding agents. It recalls what your team already decided before the agent writes code, and checks every diff after.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single reading column that widens for a split hero (thesis + live agent transcript),
+   then a vertical "decision ledger" of sections ruled by thin olive lines. */
+:root {
+  --bg: #eef1ec;
+  --surface: #f8faf6;
+  --ink: #15211b;
+  --muted: #56645b;
+  --line: #cfd8cc;
+  --accent: #5d6c1f;       /* olive bronze */
+  --accent-ink: #f4f7e8;
+  --term-bg: #17221c;
+  --term-fg: #dfe7dc;
+  --term-dim: #8a9b8f;
+  --ok: #3f7a4a;
+  --warn: #b0561c;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1512; --surface: #151d18; --ink: #e3e9e1; --muted: #9aa89e; --line: #27332b;
+    --accent: #b8c867; --accent-ink: #141a0b; --term-bg: #0a0f0c; --term-fg: #dfe7dc; --term-dim: #7f9184;
+    --ok: #7cc48a; --warn: #f0a06a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1512; --surface: #151d18; --ink: #e3e9e1; --muted: #9aa89e; --line: #27332b;
+  --accent: #b8c867; --accent-ink: #141a0b; --term-bg: #0a0f0c; --term-fg: #dfe7dc; --term-dim: #7f9184;
+  --ok: #7cc48a; --warn: #f0a06a; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--body); font-size: 16px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.wrap {
+  max-width: 1120px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+code, pre, .mono { font-family: var(--mono); }
+
+/* Nav */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 14px; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--display); font-weight: 800; font-size: 20px; letter-spacing: -0.01em; }
+.brand svg { width: 28px; height: 28px; }
+.navlinks { display: flex; gap: 22px; align-items: center; font-size: 14px; }
+.navlinks a { text-decoration: none; color: var(--muted); }
+.navlinks a:hover { color: var(--ink); }
+.navlinks .gh { color: var(--ink); border: 1px solid var(--line); padding: 6px 12px; border-radius: 6px; background: var(--surface); }
+@media (max-width: 640px) { .navlinks .hide-sm { display: none; } }
+
+/* Hero */
+.hero .wrap { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; padding-block: 72px 64px; }
+.hero .wrap > * { min-width: 0; }
+@media (max-width: 900px) { .hero .wrap { grid-template-columns: 1fr; padding-block: 48px; gap: 36px; } }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(40px, 6.4vw, 76px); line-height: 0.98; letter-spacing: -0.03em; margin: 14px 0 20px; text-wrap: balance; }
+h1 em { font-style: normal; color: var(--accent); }
+.lede { font-size: 18px; color: var(--muted); max-width: 34em; margin: 0 0 28px; }
+.ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font-weight: 600; font-size: 15px; padding: 12px 18px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn:hover { filter: brightness(1.05); }
+
+/* Terminal */
+.term { background: var(--term-bg); color: var(--term-fg); border-radius: 12px; font-family: var(--mono); font-size: 13px; line-height: 1.65; box-shadow: 0 30px 60px -30px rgba(10, 20, 14, 0.55); overflow: hidden; }
+.term-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.08); color: var(--term-dim); font-size: 12px; }
+.term-head i { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,0.18); display: inline-block; }
+.term-head span { margin-left: 8px; }
+.term-body { padding: 16px 18px 18px; overflow-x: auto; }
+.term-body p { margin: 0; white-space: pre; }
+.t-dim { color: var(--term-dim); }
+.t-tool { color: #c9d77e; }
+.t-ok { color: #8fd49c; }
+.t-warn { color: #f3a774; }
+.t-str { color: #e8dcb0; }
+.step { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) {
+  .term.play .step { animation: rise .5s ease both; }
+  .term.play .step:nth-child(2) { animation-delay: .25s; }
+  .term.play .step:nth-child(3) { animation-delay: .5s; }
+  .term.play .step:nth-child(4) { animation-delay: .75s; }
+  .term.play .step:nth-child(5) { animation-delay: 1s; }
+  @keyframes rise { from { transform: translateY(6px); opacity: .35; } to { transform: none; opacity: 1; } }
+}
+.step + .step { margin-top: 12px; }
+
+/* Sections */
+section { border-top: 1px solid var(--line); }
+section > .wrap { padding-block: 72px; }
+@media (max-width: 640px) { section > .wrap { padding-block: 52px; } }
+.sec-head { display: grid; grid-template-columns: 220px 1fr; gap: 32px; margin-bottom: 40px; }
+@media (max-width: 800px) { .sec-head { grid-template-columns: 1fr; gap: 10px; } }
+h2 { font-family: var(--display); font-weight: 700; font-size: clamp(28px, 3.6vw, 42px); line-height: 1.08; letter-spacing: -0.02em; margin: 0; text-wrap: balance; max-width: 18em; }
+.sec-head p { color: var(--muted); max-width: 40em; margin: 12px 0 0; }
+
+/* Problem statement */
+.quote { font-family: var(--display); font-weight: 500; font-size: clamp(22px, 2.8vw, 32px); line-height: 1.3; letter-spacing: -0.01em; max-width: 26em; margin: 0; text-wrap: balance; }
+.quote b { color: var(--accent); font-weight: 700; }
+
+/* Flow */
+.flow { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
+@media (max-width: 900px) { .flow { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px) { .flow { grid-template-columns: 1fr; } }
+.flow li { padding: 24px 22px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 0; }
+.flow .n { font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: 0.08em; }
+.flow h3 { font-family: var(--display); font-size: 21px; margin: 6px 0 8px; letter-spacing: -0.01em; }
+.flow p { margin: 0; color: var(--muted); font-size: 15px; }
+.flow code { font-size: 13px; color: var(--ink); background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+
+/* Tools table */
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+table { width: 100%; border-collapse: collapse; min-width: 560px; }
+th, td { text-align: left; padding: 14px 18px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+td:first-child { font-family: var(--mono); font-size: 14px; white-space: nowrap; color: var(--accent); }
+td:last-child { color: var(--ink); }
+.tag { font-family: var(--mono); font-size: 11px; padding: 2px 7px; border-radius: 99px; border: 1px solid var(--accent); color: var(--accent); margin-left: 8px; letter-spacing: 0.04em; }
+
+/* Agents */
+.agents { display: flex; flex-wrap: wrap; gap: 10px; }
+.agents span { font-weight: 500; padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.note { color: var(--muted); margin-top: 20px; max-width: 46em; }
+
+/* Enterprise grid */
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+@media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+.grid div { background: var(--surface); padding: 22px; min-width: 0; }
+.grid h3 { font-family: var(--display); font-size: 18px; margin: 0 0 6px; }
+.grid p { margin: 0; color: var(--muted); font-size: 15px; }
+
+/* Quickstart */
+.qs { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.qs > * { min-width: 0; }
+@media (max-width: 900px) { .qs { grid-template-columns: 1fr; } }
+.codeblock { position: relative; background: var(--term-bg); color: var(--term-fg); border-radius: 12px; }
+.codeblock .label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--term-dim); padding: 12px 16px 0; }
+.codeblock pre { margin: 0; padding: 10px 16px 18px; overflow-x: auto; font-size: 13.5px; line-height: 1.7; }
+.copy { position: absolute; top: 8px; right: 8px; font-family: var(--mono); font-size: 12px; background: rgba(255,255,255,0.08); color: var(--term-fg); border: 1px solid rgba(255,255,255,0.14); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+.copy:hover { background: rgba(255,255,255,0.16); }
+.steps-list { margin: 0; padding-left: 20px; color: var(--muted); }
+.steps-list li + li { margin-top: 8px; }
+.steps-list b { color: var(--ink); font-weight: 600; }
+
+/* Footer */
+footer { border-top: 1px solid var(--line); }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; padding-block: 32px; color: var(--muted); font-size: 14px; }
+footer a { color: var(--ink); }
+</style>
+<style>html{color-scheme:light}html,body{margin:0}img{max-width:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+</head>
+<body>
+
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Athena home">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="15" fill="var(--accent)"/>
+        <circle cx="11.2" cy="14.5" r="4" fill="var(--accent-ink)"/>
+        <circle cx="20.8" cy="14.5" r="4" fill="var(--accent-ink)"/>
+        <circle cx="11.2" cy="14.5" r="1.7" fill="var(--ink)"/>
+        <circle cx="20.8" cy="14.5" r="1.7" fill="var(--ink)"/>
+        <path d="M14.4 19.5 L16 22.5 L17.6 19.5 Z" fill="var(--accent-ink)"/>
+      </svg>
+      Athena
+    </a>
+    <div class="navlinks">
+      <a class="hide-sm" href="#how">How it works</a>
+      <a class="hide-sm" href="#tools">Tools</a>
+      <a class="hide-sm" href="#enterprise">Self-hosting</a>
+      <a class="gh" href="https://github.com/AbhiRam162105/ares">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow">Decision memory for AI coding agents</div>
+      <h1>Your codebase forgets. <em>Athena doesn't.</em></h1>
+      <p class="lede">Athena remembers what your team has already decided and hands it to your coding agent at the moment it writes code. Cursor, Claude Code, Copilot and the rest ask Athena first, so the mistake never gets typed and never reaches review.</p>
+      <div class="ctas">
+        <a class="btn primary" href="#quickstart">Get started</a>
+        <a class="btn" href="https://github.com/AbhiRam162105/ares">View source on GitHub</a>
+      </div>
+    </div>
+
+    <div class="term" id="term" role="img" aria-label="Example: an agent asks Athena for past decisions before writing code, then has its diff checked and a conflict is flagged.">
+      <div class="term-head"><i></i><i></i><i></i><span>agent ⇄ athena · repo acme/payments</span></div>
+      <div class="term-body">
+        <div class="step">
+<p class="t-dim"># before writing code</p>
+<p><span class="t-tool">recall_decisions</span>(<span class="t-str">"add retry to the Stripe webhook handler"</span>)</p>
+        </div>
+        <div class="step">
+<p><span class="t-ok">✓ 2 decisions</span>  <span class="t-dim">similarity ≥ 0.75</span></p>
+<p>  D-114  Webhooks must be idempotent on event.id</p>
+<p>  D-087  Retries go through lib/backoff, never setTimeout</p>
+        </div>
+        <div class="step">
+<p class="t-dim"># after writing code</p>
+<p><span class="t-tool">check_conflict</span>(diff, intent=<span class="t-str">"retry webhook"</span>)</p>
+        </div>
+        <div class="step">
+<p><span class="t-warn">✗ conflict</span>  D-087  <span class="t-dim">confidence 0.91</span></p>
+<p>  src/webhooks/stripe.ts:42 uses setTimeout for retry.</p>
+<p>  Use withBackoff() from lib/backoff instead.</p>
+        </div>
+        <div class="step">
+<p class="t-ok">→ agent rewrites before you ever see the PR</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <p class="quote">Code review is the most expensive place to learn a rule. In an agent-written codebase, the moment that matters is <b>write time</b>, and the question worth answering is <b>“what has this team already decided about this?”</b></p>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">How it works</div>
+      <div>
+        <h2>Learn the rules once, enforce them on every line</h2>
+        <p>Athena builds a corpus of engineering decisions from your docs and pull-request history, then sits between your agent and your repo.</p>
+      </div>
+    </div>
+    <ol class="flow">
+      <li><div class="n">STEP 1</div><h3>Onboard</h3><p>Point Athena at a repo. It reads README, CONTRIBUTING, ADRs and past PR reviews, and extracts the written and unwritten rules.</p></li>
+      <li><div class="n">STEP 2</div><h3>Recall</h3><p>Before generating code, the agent calls <code>recall_decisions</code> and gets the team's relevant decisions as context.</p></li>
+      <li><div class="n">STEP 3</div><h3>Check</h3><p>After writing, the agent sends its diff to <code>check_conflict</code>. Any violation comes back with the rule and the reasoning.</p></li>
+      <li><div class="n">STEP 4</div><h3>Record</h3><p>New decisions are saved with <code>record_decision</code>, and old ones are superseded with a full audit trail.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="tools">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">MCP tools</div>
+      <div>
+        <h2>Six tools any agent can call</h2>
+        <p>Athena speaks the Model Context Protocol over stdio or Streamable HTTP, with a matching REST API for CI, bots and the browser extension. No SDK and no agent-specific code.</p>
+      </div>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Tool</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td>recall_decisions<span class="tag">write time</span></td><td>Semantic search over the workspace's active decisions for this repo. Called before writing code.</td></tr>
+          <tr><td>check_conflict</td><td>Takes a snippet or diff and returns conflicts with the violated decision and the reasoning.</td></tr>
+          <tr><td>record_decision</td><td>Saves a new engineering decision so future code from any agent or person respects it.</td></tr>
+          <tr><td>list_decisions</td><td>Lists decisions, filtered by repo and status.</td></tr>
+          <tr><td>get_decision</td><td>Fetches a single decision by id.</td></tr>
+          <tr><td>supersede_decision</td><td>Marks a decision superseded and links its replacement, keeping the lineage.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Works with</div>
+      <div>
+        <h2>One memory, every agent your team uses</h2>
+        <p>The decision corpus belongs to your team, not your IDE. Switch tools and the memory comes with you.</p>
+      </div>
+    </div>
+    <div class="agents">
+      <span>Cursor</span><span>Claude Code</span><span>Claude Desktop</span><span>GitHub Copilot</span><span>Windsurf</span><span>Cline</span><span>Codex</span><span>CI pipelines</span><span>Chrome extension</span>
+    </div>
+    <p class="note">A drop-in CI script posts each PR diff to the check endpoint and fails the build on any conflict with confidence of 0.8 or higher.</p>
+  </div>
+</section>
+
+<section id="enterprise">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Self-hosting &amp; enterprise</div>
+      <div>
+        <h2>Runs in your VPC, on Postgres you already trust</h2>
+        <p>A stateless Node server and one Postgres database with pgvector. Every decision's text and embedding live in the same row.</p>
+      </div>
+    </div>
+    <div class="grid">
+      <div><h3>Air-gap ready</h3><p>Use local embeddings and Ollama, and no data leaves your network. Switching providers is an environment change, not a code change.</p></div>
+      <div><h3>Free to store</h3><p>Decisions are never metered or capped. The corpus is your asset.</p></div>
+      <div><h3>Multi-tenant</h3><p>Every query is scoped to the workspace behind its API key. No query crosses workspaces.</p></div>
+      <div><h3>Audited</h3><p>An append-only log records every recall, check, override, supersede and delete.</p></div>
+      <div><h3>Decision lifecycle</h3><p>Decisions move from active to superseded to deprecated, with lineage preserved.</p></div>
+      <div><h3>Scales out</h3><p>HNSW index over half-precision vectors keeps search fast across millions of decisions per workspace.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="quickstart">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Quickstart</div>
+      <div>
+        <h2>Running locally in one command</h2>
+        <p>You need Docker and an OpenAI API key.</p>
+      </div>
+    </div>
+    <div class="qs">
+      <div class="codeblock">
+        <div class="label">Terminal</div>
+        <button class="copy" type="button" data-target="cmd-setup">Copy</button>
+<pre id="cmd-setup">git clone https://github.com/AbhiRam162105/ares.git
+cd ares
+./setup.sh</pre>
+      </div>
+      <div>
+        <ol class="steps-list">
+          <li><b>Starts the stack.</b> Postgres with pgvector and the server on localhost:8787.</li>
+          <li><b>Creates a workspace</b> and prints your API key.</li>
+          <li><b>Writes a Cursor config</b> and can install the MCP server, skills and rule globally.</li>
+          <li><b>Onboard a repo.</b> Ask your agent: “Use the ares-onboard-repo skill to onboard owner/repo.”</li>
+        </ol>
+      </div>
+      <div class="codeblock" style="grid-column: 1 / -1;">
+        <div class="label">.cursor/mcp.json</div>
+        <button class="copy" type="button" data-target="cmd-mcp">Copy</button>
+<pre id="cmd-mcp">{
+  "mcpServers": {
+    "athena": {
+      "url": "http://localhost:8787/mcp",
+      "headers": { "Authorization": "Bearer &lt;YOUR_API_KEY&gt;" }
+    }
+  }
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Athena · open source under the MIT License · © 2026 Yanampally Abhiram Reddy</span>
+    <a href="https://github.com/AbhiRam162105/ares">github.com/AbhiRam162105/ares</a>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var term = document.getElementById('term');
+    if (term) term.classList.add('play');
+    document.querySelectorAll('.copy').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var el = document.getElementById(btn.getAttribute('data-target'));
+        var text = el.textContent;
+        var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1600); };
+        var fallback = function () {
+          var r = document.createRange(); r.selectNodeContents(el);
+          var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+          btn.textContent = 'Press ⌘C';
+        };
+        try {
+          navigator.clipboard.writeText(text).then(done, fallback);
+        } catch (e) { fallback(); }
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>
